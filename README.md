@@ -54,35 +54,6 @@ A fun, interactive word guessing game built with React, Framer Motion, and Tailw
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint
 
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run: `vercel`
-3. Follow the prompts
-
-### Netlify
-1. Build the project: `npm run build`
-2. Drag the `dist` folder to Netlify
-3. Configure custom domain if needed
-
-### GitHub Pages
-1. Add to package.json:
-   ```json
-   "homepage": "https://yourusername.github.io/guess-the-word",
-   "scripts": {
-     "predeploy": "npm run build",
-     "deploy": "gh-pages -d dist"
-   }
-   ```
-2. Install gh-pages: `npm install --save-dev gh-pages`
-3. Deploy: `npm run deploy`
-
-### Manual Deployment
-1. Build: `npm run build`
-2. Upload `dist` folder contents to your web server
-3. Configure server to serve `index.html` for all routes
-
 ## 🎨 Customization
 
 ### Adding New Phrases
