@@ -2,62 +2,188 @@
 export const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
-      // Add cache busting and proper MIME type handling
-      const swUrl = `/sw.js?v=${Date.now()}`;
+      console.log('Attempting to register service worker...');
       
-      // Check if service worker file exists and has correct MIME type
-      try {
-        const response = await fetch(swUrl, { method: 'HEAD' });
-        const contentType = response.headers.get('content-type');
+      // Try multiple approaches to register the service worker
+      const registration = await tryServiceWorkerRegistration();
+      
+      if (registration) {
+        console.log('SW registered successfully: ', registration);
         
-        if (contentType && contentType.includes('text/html')) {
-          console.warn('Service worker has incorrect MIME type, skipping registration');
-          return null;
-        }
-      } catch (fetchError) {
-        console.warn('Could not check service worker MIME type:', fetchError);
-      }
-      
-      const registration = await navigator.serviceWorker.register(swUrl, {
-        scope: '/',
-        updateViaCache: 'none'
-      });
-      
-      console.log('SW registered: ', registration);
-      
-      // Check for updates
-      registration.addEventListener('updatefound', () => {
-        const newWorker = registration.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // New content is available, show update notification
-            showUpdateNotification();
-          }
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New content is available, show update notification
+              showUpdateNotification();
+            }
+          });
         });
-      });
-      
-      return registration;
+        
+        return registration;
+      } else {
+        console.log('No service worker registration strategy succeeded');
+      }
     } catch (error) {
       console.log('SW registration failed: ', error);
-      
-      // Fallback: try to register with different approach
-      if (error.name === 'SecurityError' || error.message.includes('MIME type')) {
-        console.log('Attempting fallback service worker registration...');
-        try {
-          const fallbackRegistration = await navigator.serviceWorker.register('/sw.js', {
-            scope: '/',
-            updateViaCache: 'none'
-          });
-          console.log('Fallback SW registered: ', fallbackRegistration);
-          return fallbackRegistration;
-        } catch (fallbackError) {
-          console.log('Fallback SW registration also failed: ', fallbackError);
-        }
-      }
     }
+  } else {
+    console.log('Service worker not supported in this browser');
   }
   return null;
 };
+
+// Try multiple registration strategies
+async function tryServiceWorkerRegistration() {
+  const strategies = [
+    // Strategy 1: Try inline service worker (embedded in HTML)
+    async () => {
+      return await registerInlineServiceWorker();
+    },
+    
+    // Strategy 2: Direct registration with cache busting
+    async () => {
+      const swUrl = `/sw.js?v=${Date.now()}`;
+      return await navigator.serviceWorker.register(swUrl, {
+        scope: '/',
+        updateViaCache: 'none'
+      });
+    },
+    
+    // Strategy 3: Try without cache busting
+    async () => {
+      return await navigator.serviceWorker.register('/sw.js', {
+        scope: '/',
+        updateViaCache: 'none'
+      });
+    },
+    
+    // Strategy 4: Try with minimal options
+    async () => {
+      return await navigator.serviceWorker.register('/sw.js');
+    }
+  ];
+
+  for (let i = 0; i < strategies.length; i++) {
+    try {
+      console.log(`Trying service worker registration strategy ${i + 1}...`);
+      const registration = await strategies[i]();
+      console.log(`Strategy ${i + 1} succeeded!`);
+      return registration;
+    } catch (error) {
+      console.log(`Strategy ${i + 1} failed:`, error.message);
+      
+      // If it's a MIME type error, try the next strategy
+      if (error.name === 'SecurityError' || error.message.includes('MIME type')) {
+        continue;
+      }
+      
+      // For other errors, try the next strategy
+      continue;
+    }
+  }
+  
+  console.log('All service worker registration strategies failed');
+  return null;
+}
+
+// Register inline service worker to avoid MIME type issues
+async function registerInlineServiceWorker() {
+  try {
+    // Create a blob URL with the service worker code
+    const swCode = `
+      const CACHE_NAME = 'dumb-charades-v3';
+      const urlsToCache = ['/', '/index.html', '/manifest.json'];
+      
+      self.addEventListener('install', (event) => {
+        event.waitUntil(
+          caches.open(CACHE_NAME)
+            .then((cache) => {
+              console.log('Opened cache');
+              return cache.addAll(urlsToCache);
+            })
+        );
+      });
+      
+      self.addEventListener('fetch', (event) => {
+        const { request } = event;
+        const url = new URL(request.url);
+        
+        // Skip caching for problematic paths
+        if (url.pathname.startsWith('/sw.js') || url.pathname.startsWith('/src/') || url.pathname.startsWith('/public/')) {
+          event.respondWith(fetch(request));
+          return;
+        }
+        
+        // Only cache GET requests
+        if (request.method !== 'GET') {
+          event.respondWith(fetch(request));
+          return;
+        }
+        
+        event.respondWith(
+          caches.match(request)
+            .then((response) => {
+              if (response) {
+                return response;
+              }
+              
+              return fetch(request).then(response => {
+                if (!response || response.status !== 200 || response.type !== 'basic') {
+                  return response;
+                }
+                
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME)
+                  .then((cache) => {
+                    cache.put(request, responseToCache);
+                  });
+                
+                return response;
+              });
+            })
+            .catch(() => {
+              if (request.destination === 'document') {
+                return caches.match('/index.html');
+              }
+              return new Response('Network error', { status: 503 });
+            })
+        );
+      });
+      
+      self.addEventListener('activate', (event) => {
+        event.waitUntil(
+          caches.keys().then((cacheNames) => {
+            return Promise.all(
+              cacheNames.map((cacheName) => {
+                if (cacheName !== CACHE_NAME) {
+                  console.log('Deleting old cache:', cacheName);
+                  return caches.delete(cacheName);
+                }
+              })
+            );
+          })
+        );
+      });
+    `;
+    
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    
+    const registration = await navigator.serviceWorker.register(swUrl, {
+      scope: '/'
+    });
+    
+    // Clean up the blob URL
+    URL.revokeObjectURL(swUrl);
+    
+    return registration;
+  } catch (error) {
+    console.log('Inline service worker registration failed:', error);
+    throw error;
+  }
+}
 
 // Show update notification
 const showUpdateNotification = () => {

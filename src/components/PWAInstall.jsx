@@ -46,6 +46,18 @@ const PWAInstall = () => {
 
     checkServiceWorker();
 
+    // Show install prompt even without service worker for basic PWA functionality
+    const showInstallPromptDelayed = () => {
+      setTimeout(() => {
+        if (!isInstalled && !showInstallPrompt && 'BeforeInstallPromptEvent' in window) {
+          // Try to trigger install prompt manually
+          console.log('Attempting to show install prompt...');
+        }
+      }, 3000);
+    };
+
+    showInstallPromptDelayed();
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
@@ -53,7 +65,7 @@ const PWAInstall = () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isInstalled, showInstallPrompt]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
