@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import PWAInstall from './components/PWAInstall';
+import PWADebug from './components/PWADebug';
 
 export default function DumbCharades() {
   const [teamScores, setTeamScores] = useState([0, 0]);
@@ -97,6 +98,7 @@ export default function DumbCharades() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-500 to-yellow-400 text-white p-4">
       <PWAInstall />
+      <PWADebug />
       <h1 className="text-4xl font-bold mb-4">AI Dumb Charades</h1>
 
       <div className="flex gap-2 mb-4">

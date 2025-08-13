@@ -2,7 +2,27 @@
 export const registerServiceWorker = async () => {
   if ('serviceWorker' in navigator) {
     try {
-      const registration = await navigator.serviceWorker.register('/sw.js');
+      // Add cache busting and proper MIME type handling
+      const swUrl = `/sw.js?v=${Date.now()}`;
+      
+      // Check if service worker file exists and has correct MIME type
+      try {
+        const response = await fetch(swUrl, { method: 'HEAD' });
+        const contentType = response.headers.get('content-type');
+        
+        if (contentType && contentType.includes('text/html')) {
+          console.warn('Service worker has incorrect MIME type, skipping registration');
+          return null;
+        }
+      } catch (fetchError) {
+        console.warn('Could not check service worker MIME type:', fetchError);
+      }
+      
+      const registration = await navigator.serviceWorker.register(swUrl, {
+        scope: '/',
+        updateViaCache: 'none'
+      });
+      
       console.log('SW registered: ', registration);
       
       // Check for updates
@@ -19,8 +39,24 @@ export const registerServiceWorker = async () => {
       return registration;
     } catch (error) {
       console.log('SW registration failed: ', error);
+      
+      // Fallback: try to register with different approach
+      if (error.name === 'SecurityError' || error.message.includes('MIME type')) {
+        console.log('Attempting fallback service worker registration...');
+        try {
+          const fallbackRegistration = await navigator.serviceWorker.register('/sw.js', {
+            scope: '/',
+            updateViaCache: 'none'
+          });
+          console.log('Fallback SW registered: ', fallbackRegistration);
+          return fallbackRegistration;
+        } catch (fallbackError) {
+          console.log('Fallback SW registration also failed: ', fallbackError);
+        }
+      }
     }
   }
+  return null;
 };
 
 // Show update notification

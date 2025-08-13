@@ -28,6 +28,24 @@ const PWAInstall = () => {
       setDeferredPrompt(null);
     };
 
+    // Check if service worker is working properly
+    const checkServiceWorker = async () => {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration && registration.active) {
+            console.log('Service worker is active and working');
+          } else {
+            console.log('Service worker not active, PWA features may be limited');
+          }
+        }
+      } catch (error) {
+        console.log('Service worker check failed:', error);
+      }
+    };
+
+    checkServiceWorker();
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
