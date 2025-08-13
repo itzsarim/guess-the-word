@@ -11,6 +11,8 @@ A fun, interactive word guessing game built with React, Framer Motion, and Tailw
 - **Responsive design** that works on all devices
 - **Smooth animations** powered by Framer Motion
 - **Auto-generated phrases** for endless gameplay
+- **Progressive Web App (PWA)** - Install on mobile devices
+- **Offline support** with service worker caching
 
 ## 🚀 Quick Start
 
@@ -53,6 +55,7 @@ A fun, interactive word guessing game built with React, Framer Motion, and Tailw
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build locally
 - `npm run lint` - Run ESLint
+- `npm run generate-icons` - Generate PWA icons from SVG
 
 ## 🎨 Customization
 
@@ -80,6 +83,18 @@ const PHRASES = useRef({
 - Update `tailwind.config.js` for theme customization
 - Colors and gradients are in the main App component
 
+### PWA Features
+- **Install Prompt**: Automatic install prompt for supported devices
+- **Offline Support**: Service worker caches app resources
+- **App Icons**: Multiple sizes generated automatically from SVG
+- **Manifest**: Configurable app metadata and display settings
+- **iOS Support**: Special handling for Safari on iOS devices
+
+To regenerate PWA icons:
+```bash
+npm run generate-icons
+```
+
 ## 🔧 Tech Stack
 
 - **React 18** - UI framework
@@ -88,6 +103,8 @@ const PHRASES = useRef({
 - **Tailwind CSS** - Styling
 - **PostCSS** - CSS processing
 - **Autoprefixer** - CSS compatibility
+- **Service Worker** - PWA offline functionality
+- **Web App Manifest** - PWA installation support
 
 ## 📱 Browser Support
 
